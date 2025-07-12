@@ -1,31 +1,37 @@
-// /api/proxy.js  – minimal proxy for GitHub & Supabase
+// /api/proxy.js  – minimal proxy for GitHub & Supabase (tolerant JSON parser)
+
 export default async (req, res) => {
-  // Simple GET = health-check
+  // Health-check
   if (req.method === "GET") {
     return res.status(200).send("proxy online");
   }
 
-  // POST body should contain { target: "github"|"supabase", options: {...} }
+  // Parse body (handles raw text → JSON)
+  const raw = await req.text();
   let body;
   try {
-    body = await req.json();
+    body = JSON.parse(raw);
   } catch {
-    return res.status(400).send("Invalid JSON body");
+    return res.status(400).send("Invalid JSON");
   }
-  const { target, options } = body;
+  const { target, options } = body || {};
 
+  // ---------- GitHub ----------
   if (target === "github") {
     const r = await fetch(`https://api.github.com${options.path}`, {
       method: options.method,
       headers: {
         Authorization: `token ${process.env.GITHUB_PAT}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "User-Agent": "pressofficelm-proxy"
       },
-      body: JSON.stringify(options.body)
+      body: options.body ? JSON.stringify(options.body) : undefined
     });
-    return res.status(r.status).json(await r.json());
+    const data = await r.json();
+    return res.status(r.status).json(data);
   }
 
+  // ---------- Supabase ----------
   if (target === "supabase") {
     const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc`, {
       method: "POST",
@@ -36,8 +42,10 @@ export default async (req, res) => {
       },
       body: JSON.stringify(options)
     });
-    return res.status(r.status).json(await r.json());
+    const data = await r.json();
+    return res.status(r.status).json(data);
   }
 
+  // Unknown target
   return res.status(400).send("unknown target");
 };
