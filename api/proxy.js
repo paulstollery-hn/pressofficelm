@@ -1,6 +1,19 @@
 // /api/proxy.js  – minimal proxy for GitHub & Supabase
 export default async (req, res) => {
-  const { target, options } = await req.json();      // options differ per target
+  // Simple GET = health-check
+  if (req.method === "GET") {
+    return res.status(200).send("proxy online");
+  }
+
+  // POST body should contain { target: "github"|"supabase", options: {...} }
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return res.status(400).send("Invalid JSON body");
+  }
+  const { target, options } = body;
+
   if (target === "github") {
     const r = await fetch(`https://api.github.com${options.path}`, {
       method: options.method,
@@ -12,6 +25,7 @@ export default async (req, res) => {
     });
     return res.status(r.status).json(await r.json());
   }
+
   if (target === "supabase") {
     const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc`, {
       method: "POST",
@@ -24,5 +38,6 @@ export default async (req, res) => {
     });
     return res.status(r.status).json(await r.json());
   }
-  res.status(400).end("unknown target");
+
+  return res.status(400).send("unknown target");
 };
