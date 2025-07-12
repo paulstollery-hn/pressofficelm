@@ -3,6 +3,14 @@
   <head><meta charset="utf-8"><title>pressofficelm</title></head>
   <body style="font-family:sans-serif;text-align:center;margin-top:3rem">
     <h1>Pressofficelm pipeline is live!</h1>
+
+    <h2>Add a message</h2>
+    <form id="msg-form" style="margin-bottom:2rem">
+      <input id="msg-input" type="text" placeholder="Type a message" required
+             style="padding:0.5rem;width:60%;max-width:300px">
+      <button type="submit" style="padding:0.5rem 1rem">Send</button>
+    </form>
+
     <p>Messages from Supabase:</p>
     <ul id="messages">Loading…</ul>
 
@@ -13,7 +21,7 @@
       const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
       async function loadMessages() {
-        const { data, error } = await client.from("messages").select();
+        const { data, error } = await client.from("messages").select().order("created_at", { ascending: false });
         const list = document.getElementById("messages");
         if (error) {
           list.textContent = "Error: " + error.message;
@@ -21,6 +29,18 @@
           list.innerHTML = data.map(m => `<li>${m.text}</li>`).join("");
         }
       }
+
+      document.getElementById("msg-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const input = document.getElementById("msg-input");
+        const text = input.value.trim();
+        if (!text) return;
+        const { error } = await client.from("messages").insert({ text });
+        if (error) alert(error.message);
+        input.value = "";
+        loadMessages();        // refresh list
+      });
+
       loadMessages();
     </script>
   </body>
