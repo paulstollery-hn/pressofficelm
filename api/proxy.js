@@ -1,11 +1,11 @@
+// /api/proxy.js  – proxy for GitHub & Supabase (works in Next.js API routes)
+
 export default async (req, res) => {
+  // health-check
   if (req.method === "GET") return res.status(200).send("proxy online");
 
-  const raw = await req.text();
-  console.log("RAW BODY:", raw);                     // ← see this in Logs
-  let body;
-  try { body = JSON.parse(raw); } catch { return res.status(400).send("Invalid JSON"); }
-  const { target, options } = body || {};
+  // body already parsed by Next.js
+  const { target, options } = req.body || {};
 
   if (target === "github") {
     const r = await fetch(`https://api.github.com${options.path}`, {
