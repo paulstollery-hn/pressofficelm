@@ -1,22 +1,12 @@
-// /api/proxy.js  – minimal proxy for GitHub & Supabase (tolerant JSON parser)
-
 export default async (req, res) => {
-  // Health-check
-  if (req.method === "GET") {
-    return res.status(200).send("proxy online");
-  }
+  if (req.method === "GET") return res.status(200).send("proxy online");
 
-  // Parse body (handles raw text → JSON)
   const raw = await req.text();
+  console.log("RAW BODY:", raw);                     // ← see this in Logs
   let body;
-  try {
-    body = JSON.parse(raw);
-  } catch {
-    return res.status(400).send("Invalid JSON");
-  }
+  try { body = JSON.parse(raw); } catch { return res.status(400).send("Invalid JSON"); }
   const { target, options } = body || {};
 
-  // ---------- GitHub ----------
   if (target === "github") {
     const r = await fetch(`https://api.github.com${options.path}`, {
       method: options.method,
@@ -27,11 +17,9 @@ export default async (req, res) => {
       },
       body: options.body ? JSON.stringify(options.body) : undefined
     });
-    const data = await r.json();
-    return res.status(r.status).json(data);
+    return res.status(r.status).json(await r.json());
   }
 
-  // ---------- Supabase ----------
   if (target === "supabase") {
     const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc`, {
       method: "POST",
@@ -42,10 +30,8 @@ export default async (req, res) => {
       },
       body: JSON.stringify(options)
     });
-    const data = await r.json();
-    return res.status(r.status).json(data);
+    return res.status(r.status).json(await r.json());
   }
 
-  // Unknown target
   return res.status(400).send("unknown target");
 };
