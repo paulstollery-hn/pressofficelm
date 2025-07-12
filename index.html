@@ -10,10 +10,10 @@
     <script>
       const SUPABASE_URL = "https://ibwsfuygloaisxrjrgqj.supabase.co";
       const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlid3NmdXlnbG9haXN4cmpyZ3FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIzMTk2NjcsImV4cCI6MjA2Nzg5NTY2N30.GWPNSsbuhBUlTVnbeXBxf9rUYn44GHumhtIeK0e2e-I";
-      const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
       async function loadMessages() {
-        const { data, error } = await supabase.from("messages").select();
+        const { data, error } = await client.from("messages").select();
         const list = document.getElementById("messages");
         if (error) {
           list.textContent = "Error: " + error.message;
